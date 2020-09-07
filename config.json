@@ -1,0 +1,40 @@
+{
+    "programs": {
+        "bc": {
+            "cmd": "bc",
+            "numprocs": 3,
+            "autostart": true,
+            "autorestart": "UNEXPECTED",
+            "starttime": 2,
+            "stoptime": 10,
+            "restartretries": 3,
+            "stopsig": "TERM",
+            "exitcodes": "None",
+            "workingdir": "Log/",
+            "umask": "None",
+            "stdout": "outfile.log",
+            "stderr": "outfile.log",
+            "env": "None"
+        },
+        "ls": {
+            "cmd": "ls -l",
+            "numprocs": 2,
+            "autostart": true,
+            "autorestart": "never",
+            "starttime": 0,
+            "stoptime": 0,
+            "restartretries": 3,
+            "quitsig": "TERM",
+            "exitcodes": "None",
+            "workingdir": "None",
+            "umask": "None",
+            "stdout": "outfile.log",
+            "stderr": "outfile.log",
+            "env": [
+                "Name=Hakim",
+                "age=+1000"
+            ]
+        }
+    },
+	"log-file": "taskmaster.log"
+}
