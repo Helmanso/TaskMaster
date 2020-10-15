@@ -1,13 +1,13 @@
 {
     "programs": {
         "bc": {
-            "cmd": "bc",
+            "cmd": "sleep 5",
             "numprocs": 3,
             "autostart": true,
             "autorestart": "UNEXPECTED",
-            "starttime": 2,
+            "starttime": 0,
             "stoptime": 10,
-            "restartretries": 3,
+            "restartretries": 2,
             "stopsig": "TERM",
             "exitcodes": "None",
             "workingdir": "Log/",
@@ -17,11 +17,11 @@
             "env": "None"
         },
         "ls": {
-            "cmd": "ls -l",
+            "cmd": "cat",
             "numprocs": 2,
             "autostart": true,
             "autorestart": "never",
-            "starttime": 0,
+            "starttime": 2,
             "stoptime": 0,
             "restartretries": 3,
             "quitsig": "TERM",

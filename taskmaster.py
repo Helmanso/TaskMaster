@@ -4,7 +4,6 @@ import json
 from error_messages import *
 from executing import *
 from status_manager import *
-from display import *
 import logging
 from sys import stdin
 import cmd
@@ -28,7 +27,7 @@ class mycommands():
         self.stderr = param[13]
         self.env = param[14]
         self.result = []
-        self.proc = "proc"
+        self.proc = False
         self.status = "STOPED"
 
 
@@ -94,6 +93,5 @@ if __name__ == "__main__":
     if command_list and verify_conf(command_list) is False:
         exit
     firsttime_execute(command_list)
-    while(1):
-        Readline().loop(command_list)
-        update_status(command_list)
+    while (1) :
+        status_watcher(command_list)
