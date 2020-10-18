@@ -95,3 +95,6 @@ if __name__ == "__main__":
     firsttime_execute(command_list)
     while (1) :
         status_watcher(command_list)
+        input("$>")
+        for command in command_list :
+            print(command.result)

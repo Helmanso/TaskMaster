@@ -12,32 +12,51 @@ def starttime_status(command):
         command.result = []
     command.result.append([command.cmd, command.proc, "Running"])
 
-def status(command):
-    print(command.proc.poll())
+def restart_instance(command, res):
+    res[2] = "Running"
+def restart_process(command, res):
+    try :
+        with open(command.stdout, "w") as out, open(command.stderr, "w") as err :
+            res[2] = subprocess.Popen(command.cmd.split(" "), cwd = command.workingdir, stdout = out, stdin = out, stderr = err, env = command.env)
+        if command.starttime > 0 :
+            res[2] = "Started"
+            t = threading.Timer(command.starttime, restart_instance, [command, res])
+            t.daemon = True
+            t.start()
+    except :
+        print("Hello")
 
 def status_watcher(commands):
-    for command in commands :
+    for command in commands : 
         for res in command.result :
-            if res[1].poll() is not None :
+            if command.autorestart == "Always" and res[1].poll() != None :
+                restart_instance(command, res)
+            elif command.autorestart == "UNEXPECTED" and res[1].poll() != None and res[1].returncode not in command.exitcodes :
+                restart_process(command, res)
+            elif command.autorestart == "never" and res[1].poll() != None :
+                if res[1].returncode not in command.exitcodes :
+                    res[2] = "Fatal"
+                else :
+                    res[2] = "Finished"
+            elif res[1].poll() != None :
                 res[2] = "Finished"
-        print(command.result)
-
 
 def execute_1(command):
-    if command.autostart == True  and command.autorestart != "Always":
+    if command.autostart == True:
         numprocs = command.numprocs
         while numprocs > 0 :
             restarts = command.restartretries
             while restarts > 0 :
                 try :
-                    with open(command.stdout, "a") as out, open(command.stderr) as err :
-                        command.proc = subprocess.Popen(command.cmd.split(" "), cwd = command.workingdir, stdout = out, stderr = err, env = command.env)
+                    with open(command.stdout, "w") as out, open(command.stderr, "w") as err :
+                        command.proc = subprocess.Popen(command.cmd.split(" "), cwd = command.workingdir, stdout = out, stdin = out, stderr = err, env = command.env)
                         restarts = 0
                 except :
                     logging.info("Couldn't Spawn Process Trying Again ...")
                     restarts = restarts - 1
                     if restarts == 0 :
                         logging.info("Process Cannot be runned Exiting ...")
+                        exit(1)
             numprocs = numprocs - 1
             if command.starttime > 0 :
                 command.result.append([command.cmd, command.proc, "Started"])
@@ -46,6 +65,7 @@ def execute_1(command):
                 t.start()
             else :
                 command.result.append([command.cmd, command.proc, "Running"])
+
             
 
 
