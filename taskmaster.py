@@ -8,8 +8,18 @@ import logging
 from sys import stdin
 import cmd
 
+class colors :
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    endc = '\033[0m'
+    bold = '\033[1m'
+    cyan = '\u001b[36;1m'
+    red = '\u001b[31;1m'
 
-class mycommands():
+class mycommands :
     def __init__(self, param):
         self.name = param[0]
         self.cmd = param[1]
@@ -91,10 +101,29 @@ def verify_conf(commands):
 if __name__ == "__main__":
     command_list = load_config()
     if command_list and verify_conf(command_list) is False:
-        exit
+        exit (1)
     firsttime_execute(command_list)
-    while (1) :
+    while 1 :
         status_watcher(command_list)
-        input("$>")
-        for command in command_list :
-            print(command.result)
+
+        print(colors.bold + colors.cyan + "TaskMaster >" + colors.endc)
+        command = input().strip().split()
+        print ('command >', command)
+        if command and command[0].lower() == 'exit' :
+        	exit(0)
+        elif command and command[0].lower() == 'status' :
+            print("status")
+        elif command and command[0].lower() == 'reload' :
+            print("reload")
+        elif command and command[0].lower() == 'start' :
+            print("start")
+        elif command and command[0].lower() == 'stop' :
+            print ('stop')
+        elif command and command[0].lower() == 'restart' :
+            print ('retsart')
+        else:
+        	print(colors.bold + "TaskMaster : "+ colors.red + "Command doesn't exist" + colors.endc)
+        	print(colors.bold + "Usage: -status -start -stop -restart -reload" + colors.endc)
+        
+        for c in command_list :
+            print(c.result)

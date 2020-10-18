@@ -1,2 +1,2 @@
-2020-10-18 11:57:49,372 INFO	Logging is Started
-2020-10-18 11:57:49,372 INFO	Config verified succesfully
+2020-10-18 12:51:33,885 INFO	Logging is Started
+2020-10-18 12:51:33,885 INFO	Config verified succesfully
