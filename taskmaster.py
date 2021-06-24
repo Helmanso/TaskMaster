@@ -1,25 +1,17 @@
 
+from os import umask
+from commands import *
 import sys
 import json
-from error_messages import *
-from executing import *
-from status_manager import *
+import threading
+import signal
+from pre_execution import *
+from execution import *
 import logging
-from sys import stdin
-import cmd
 
-class colors :
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    endc = '\033[0m'
-    bold = '\033[1m'
-    cyan = '\u001b[36;1m'
-    red = '\u001b[31;1m'
+conf_class = []
 
-class mycommands :
+class config:
     def __init__(self, param):
         self.name = param[0]
         self.cmd = param[1]
@@ -36,94 +28,127 @@ class mycommands :
         self.stdout = param[12]
         self.stderr = param[13]
         self.env = param[14]
-        self.result = []
-        self.proc = False
-        self.status = "STOPED"
+        self.proc = None
+        self.status = None
+        self.checked = 0
+        self.thread = None
+        self.pid = 0
+        self.exitcode = "?"
+        self._hash = hash(self.hash_it())
+
+            
+    def hash_it(self):
+        return (
+                str(self.name)+str(self.cmd)+str(self.numprocs)+str(self.autostart)+str(self.autorestart)+str(self.starttime)
+                +str(self.stoptime) + str(self.restartretries)+str(self.stopsig)+str(self.exitcodes)+str(self.workingdir)+str(self.umask)
+                +str(self.stdout)+str(self.env))
 
 
-def load_config():
+class parse:
+    def __init__(self, file_name):
+        self.file_name = file_name
+        self.json_data = self.open_file()
+        self.config_dict = []
+        self.config_class = self.parse_json()
+        self.validate_file()
+
+    def open_file(self):
+        try:
+            with open(self.file_name, "r") as file:
+                return (json.load(file))
+        except Exception as e:
+            print(e)
+            exit(1)        
+    
+    def parse_json(self):
+        self.config_class = []
+        for item in self.json_data:
+            self.config_dict = []
+            self.config_dict.append(item)
+            for cmd in self.json_data[item]:
+                self.config_dict.append(self.json_data[item][cmd])
+            for i in range(0, self.json_data[item]["numprocs"]):
+                self.config_class.append(config(self.config_dict))
+        return self.config_class
+
+    def param_error(self, cmd, value):
+        print("Parameter {0} has in invalid value {1}.".format(cmd, value))
+        exit(1)
+
+    
+    def validate_file(self):
+        for command in self.config_class:
+            if not isinstance(command.cmd, str) :
+                return self.param_error("cmd", command.cmd)
+            if not isinstance(command.numprocs, int) :
+                return self.param_error("numprocs", command.numprocs)
+            if not isinstance(command.autostart, bool) :
+                return self.param_error("autostart", command.autostart)
+            if not isinstance(command.autorestart, str) :
+                return self.param_error("autorestart", command.autorestart)
+            if not isinstance(command.starttime, int) :
+                return self.param_error("starttime", command.starttime)
+            if not isinstance(command.stoptime, int) :
+                return self.param_error("stoptime", command.stoptime)
+            if not isinstance(command.restartretries, int) :
+                return self.param_error("restartretries", command.restartretries)
+            if not isinstance(command.stopsig, int) :
+                return self.param_error("stopsig", command.stopsig)
+            if not isinstance(command.exitcodes, list) and isinstance(command.exitcodes, str) is False :
+                return self.param_error("exitcodes", command.exitcodes)    
+            if not isinstance(command.workingdir, str) :
+                return self.param_error("workingdir", command.workingdir)
+            if not isinstance(command.umask, str) :
+                return self.param_error("umask", command.umask)
+            if not isinstance(command.stdout, str) :
+                return self.param_error("stdout", command.stdout)
+            if not isinstance(command.stderr, str) :
+                return self.param_error("stderr", command.stderr)
+            if not isinstance(command.env, list) and isinstance(command.env, str) is False :
+                return self.param_error("env", command.env)
+
+            
+def deamon_loop(procs):
+    while (1):
+        for cmd in procs:
+            execution(cmd, "watch")
+
+def handler(sig, frame):
+    logging.info("Signal handler triggred.")
+    commands("reload", conf_class)
+if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Argument number is not correct.")
-        return
-    try :
-        commands_list = []
-        with open(sys.argv[1], "r") as file :
-            data = json.load(file)
-            logging.basicConfig(filename=f'{"log.txt"}', level=logging.DEBUG, 
+        print("Usage: python taskmaster.py config_file")
+    else:
+        logging.basicConfig(filename=f'{"log.txt"}', level=logging.DEBUG, 
             filemode='w', 
             format='%(asctime)s %(levelname)s\t%(message)s')
-            logging.info("Logging is Started")
+        logging.info("Logging is Started.")
+        proc_class = []
+        cfile = parse(sys.argv[1])
+        logging.info("Config file is loaded sucessfully.")
+        cfile = pre_execution(cfile)
+        logging.info("Executing commands.")
+        for cmd in cfile.config_class:
+            execution(cmd, "execute")
+        j = 1
+        for i in range(0, len(cfile.config_class)):
+            cfile.config_class[i].name += "_" + str(j)
+            if j == cfile.config_class[i].numprocs:
+                j = 1
+            else:
+                j += 1
+        thread = threading.Thread(target=deamon_loop, args=[cfile.config_class], name='Thread-1')
+        thread.daemon = True
+        thread.start()
+        logging.info("Deamon started sucessfully.")
 
-            for title in data:
-                if title == "programs" : break
-            for commands in data[title]:
-                text = []
-                text.append(commands)
-                for params in data[title][commands]:
-                    text.append(data[title][commands][params])
-                commands_list.append(mycommands(text))
-            return commands_list
-    except FileExistsError :
-        print("File Does Not Exist.")
-    
-def verify_conf(commands):
-    for command in commands:
-        if not isinstance(command.cmd, str) :
-            return param_error("cmd", command.cmd)
-        if not isinstance(command.numprocs, int) :
-            return param_error("numprocs", command.numprocs)
-        if not isinstance(command.autostart, bool) :
-            return param_error("autostart", command.autostart)
-        if not isinstance(command.autorestart, str) :
-            return param_error("autorestart", command.autorestart)
-        if not isinstance(command.starttime, int) :
-            return param_error("starttime", command.starttime)
-        if not isinstance(command.stoptime, int) :
-            return param_error("stoptime", command.stoptime)
-        if not isinstance(command.restartretries, int) :
-            return param_error("restartretries", command.restartretries)
-        if not isinstance(command.stopsig, str) :
-            return param_error("stopsig", command.stopsig)
-        if not isinstance(command.exitcodes, list) and isinstance(command.exitcodes, str) is False :
-            return param_error("exitcodes", command.exitcodes)    
-        if not isinstance(command.workingdir, str) :
-            return param_error("workingdir", command.workingdir)
-        if not isinstance(command.umask, str) :
-            return param_error("umask", command.umask)
-        if not isinstance(command.stdout, str) :
-            return param_error("stdout", command.stdout)
-        if not isinstance(command.stderr, str) :
-            return param_error("stderr", command.stderr)
-        if not isinstance(command.env, list) and isinstance(command.env, str) is False :
-            return param_error("env", command.env)
-    logging.info('Config verified succesfully')
-
-if __name__ == "__main__":
-    command_list = load_config()
-    if command_list and verify_conf(command_list) is False:
-        exit (1)
-    firsttime_execute(command_list)
-    while 1 :
-        status_watcher(command_list)
-
-        print(colors.bold + colors.cyan + "TaskMaster >" + colors.endc)
-        command = input().strip().split()
-        print ('command >', command)
-        if command and command[0].lower() == 'exit' :
-        	exit(0)
-        elif command and command[0].lower() == 'status' :
-            print("status")
-        elif command and command[0].lower() == 'reload' :
-            print("reload")
-        elif command and command[0].lower() == 'start' :
-            print("start")
-        elif command and command[0].lower() == 'stop' :
-            print ('stop')
-        elif command and command[0].lower() == 'restart' :
-            print ('retsart')
-        else:
-        	print(colors.bold + "TaskMaster : "+ colors.red + "Command doesn't exist" + colors.endc)
-        	print(colors.bold + "Usage: -status -start -stop -restart -reload" + colors.endc)
-        
-        for c in command_list :
-            print(c.result)
+        signal.signal(signal.SIGHUP, handler)
+        while (1):
+            conf_class = cfile.config_class
+            line = input(colors.bold + colors.cyan + "TaskMaster$ " + colors.endc)
+            if line == "":
+                continue
+            commands(line.rstrip(), cfile.config_class)
+            if line != "\n":
+                logging.info("Userinput: {0}".format(line))

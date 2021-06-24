@@ -1,40 +1,34 @@
 {
-    "programs": {
-        "bc": {
-            "cmd": "ls",
-            "numprocs": 3,
-            "autostart": true,
-            "autorestart": "UNEXPECTED",
-            "starttime": 2,
-            "stoptime": 10,
-            "restartretries": 2,
-            "stopsig": "TERM",
-            "exitcodes": [1,2],
-            "workingdir": "Log/",
-            "umask": "None",
-            "stdout": "outfile.log",
-            "stderr": "outfile.log",
-            "env": "None"
-        },
-        "ls": {
-            "cmd": "ls",
-            "numprocs": 2,
-            "autostart": false,
-            "autorestart": "UNEXPECTED",
-            "starttime": 3,
-            "stoptime": 0,
-            "restartretries": 3,
-            "quitsig": "TERM",
-            "exitcodes": [0],
-            "workingdir": "Log/",
-            "umask": "None",
-            "stdout": "outfile.log",
-            "stderr": "outfile.log",
-            "env": [
-                "Name=Hakim",
-                "age=+1000"
-            ]
-        }
+    "bc": {
+        "cmd": "ls",
+        "numprocs": 6,
+        "autostart": true,
+        "autorestart": "never",
+        "starttime": 0,
+        "stoptime": 10,
+        "restartretries": 2,
+        "stopsig": 9,
+        "exitcodes": [1,2],
+        "workingdir": "None",
+        "umask": "None",
+        "stdout": "outfile.log",
+        "stderr": "errfile.log",
+        "env": "None"
     },
-	"log-file": "taskmaster.log"
+    "ls": {
+        "cmd": "sleep 3",
+        "numprocs": 2,
+        "autostart": false,
+        "autorestart": "UNEXPECTED",
+        "starttime": 0,
+        "stoptime": 10,
+        "restartretries": 2,
+        "stopsig": 9,
+        "exitcodes": [0,1,2],
+        "workingdir": "None",
+        "umask": "None",
+        "stdout": "outfile.log",
+        "stderr": "errfile.log",
+        "env": "None"
+    }
 }
